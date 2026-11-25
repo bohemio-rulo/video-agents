@@ -19,6 +19,7 @@ El sistema debe ejecutarse como un **microservicio web móvil (FastAPI + Docker)
    - Gancho corto con emojis, llamado a la acción al WhatsApp `72206808` y **estrictamente máximo 5 hashtags** al final (validado determinísticamente en `schemas/content_schema.py`).
 4. **Descripción Reels (`descripcion_reels` — Meta Business Suite):**
    - Texto persuasivo con viñetas/emojis, destacando envíos en Cochabamba y toda Bolivia, pago contra entrega o QR, sitio `rulo-ecommerce.com` y WhatsApp `72206808`.
+   - Cierra con un bloque de **3 a 8 hashtags** relevantes al final para maximizar el alcance en Instagram/Facebook Reels (recorte determinístico a máximo 8 en `schemas/content_schema.py`).
 
 ---
 
@@ -26,7 +27,7 @@ El sistema debe ejecutarse como un **microservicio web móvil (FastAPI + Docker)
 
 ### Archivos ya implementados y probados en macOS:
 - `config/settings.py`: Constantes de negocio, rutas (`INPUT_DIR`, `OUTPUT_DIR`), configuración LLM (`USE_LOCAL_OLLAMA`), voz (`TTS_VOICE = "es-US-AlonsoNeural"`, `TTS_RATE = "+15%"`, `TTS_PITCH = "+6Hz"`) y mezcla de audio (`KEEP_ORIGINAL_AUDIO = True`, `ORIGINAL_AUDIO_VOLUME = 0.18`).
-- `schemas/content_schema.py`: Esquema Pydantic `VideoMarketingContent` con sanitización de emojis/hashtags en `guion_audio`, formateo `72 20 68 08` y recorte a 5 hashtags en `descripcion_tiktok`.
+- `schemas/content_schema.py`: Esquema Pydantic `VideoMarketingContent` con sanitización de emojis/hashtags en `guion_audio`, formateo `72 20 68 08`, recorte a 5 hashtags en `descripcion_tiktok` y a máximo 8 hashtags en `descripcion_reels`.
 - `agents/vision_agent.py`: Comprime un proxy ligero con FFmpeg (`480p`, `4 fps`, sin audio) para acelerar subida, lo sube a Gemini File API (`google-genai`), descubre dinámicamente modelos activos priorizando `gemini-3.8-flash` con reintentos/backoff ante errores `503` y limpia archivos temporales.
 - `agents/copy_agent.py`: Agente CrewAI que usa Ollama (`ollama/llama3.1:8b`) en desarrollo local (`USE_LOCAL_OLLAMA=true`) o `gemini/gemini-3.8-flash` en servidor (`USE_LOCAL_OLLAMA=false`).
 - `services/tts_service.py`: Síntesis de voz con `edge-tts` y cálculo de duración con `ffprobe`.

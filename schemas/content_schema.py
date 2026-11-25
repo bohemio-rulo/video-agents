@@ -2,6 +2,9 @@ import re
 from pydantic import BaseModel, Field, field_validator
 from config.settings import WHATSAPP_SPOKEN
 
+TIKTOK_MAX_HASHTAGS = 5
+REELS_MAX_HASHTAGS = 8
+
 
 class VideoMarketingContent(BaseModel):
     guion_audio: str = Field(
@@ -22,8 +25,9 @@ class VideoMarketingContent(BaseModel):
         ...,
         description=(
             "Descripción completa para Meta Business Suite Reels (Facebook/Instagram) "
-            "con emojis, beneficios claros, envíos desde Cochabamba a toda Bolivia, "
-            "pago contra entrega / QR y contacto al 72206808."
+            "con viñetas/emojis, beneficios claros, envíos desde Cochabamba a toda Bolivia, "
+            "pago contra entrega / QR, web rulo-ecommerce.com y contacto al 72206808. "
+            "Cierra con un bloque de 3 a 8 hashtags relevantes al final para maximizar alcance."
         ),
     )
 
@@ -55,10 +59,10 @@ class VideoMarketingContent(BaseModel):
     @classmethod
     def enforce_max_five_hashtags(cls, value: str) -> str:
         hashtags = re.findall(r"#\w+", value)
-        if len(hashtags) <= 5:
+        if len(hashtags) <= TIKTOK_MAX_HASHTAGS:
             return value.strip()
 
-        allowed = set(hashtags[:5])
+        allowed = set(hashtags[:TIKTOK_MAX_HASHTAGS])
         seen = set()
 
         def replace_extra(match: re.Match) -> str:
@@ -70,3 +74,36 @@ class VideoMarketingContent(BaseModel):
 
         trimmed = re.sub(r"#\w+", replace_extra, value)
         return re.sub(r"\s{2,}", " ", trimmed).strip()
+
+    @field_validator("descripcion_reels")
+    @classmethod
+    def enforce_reels_hashtag_limit(cls, value: str) -> str:
+        """
+        Recorta determinísticamente la descripción de Reels a un máximo de
+        hashtags (8) preservando viñetas, saltos de línea y emojis del copy.
+        No fuerza un mínimo: deja pasar de 0 a 8 hashtags tal como los redacte el LLM.
+        """
+        hashtags = re.findall(r"#\w+", value)
+        if len(hashtags) <= REELS_MAX_HASHTAGS:
+            return value.strip()
+
+        allowed: list[str] = []
+        for tag in hashtags:
+            if tag not in allowed:
+                allowed.append(tag)
+            if len(allowed) >= REELS_MAX_HASHTAGS:
+                break
+        allowed_set = set(allowed)
+        seen: set[str] = set()
+
+        def replace_extra(match: re.Match) -> str:
+            tag = match.group(0)
+            if tag in allowed_set and tag not in seen:
+                seen.add(tag)
+                return tag
+            return ""
+
+        trimmed = re.sub(r"#\w+", replace_extra, value)
+        trimmed = re.sub(r"[ \t]{2,}", " ", trimmed)
+        trimmed = re.sub(r"[ \t]+\n", "\n", trimmed)
+        return trimmed.strip()

@@ -76,7 +76,9 @@ def generate_marketing_copy(
             f"WhatsApp {WHATSAPP_NUMBER} y MÁXIMO 5 hashtags relevantes al final.\n"
             "3. DESCRIPCIÓN REELS (Meta Business Suite): Copy persuasivo con viñetas/emojis, "
             f"detallando envíos en {CITY_BASE} y toda {COUNTRY}, pago contra entrega o QR, "
-            f"web {STORE_URL} y contacto directo al {WHATSAPP_NUMBER}."
+            f"web {STORE_URL} y contacto directo al {WHATSAPP_NUMBER}. "
+            "Cierra SIEMPRE con un bloque de 3 a 8 hashtags relevantes al final (después "
+            "del texto persuasivo) para maximizar el alcance en Instagram y Facebook Reels."
         ),
         expected_output=(
             "Objeto JSON válido ajustado al esquema VideoMarketingContent con "

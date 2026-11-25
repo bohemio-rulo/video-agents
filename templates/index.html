@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>{{ store_name }} — Video Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { -webkit-tap-highlight-color: transparent; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased pb-14">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-30 bg-slate-950/90 backdrop-blur border-b border-slate-800">
+    <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div>
+        <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-2">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-brand-400"></span>
+          {{ store_name }} Studio
+        </h1>
+        <p class="text-xs text-slate-400">
+          {{ store_url }} · WhatsApp {{ whatsapp_number }} · TTS: {{ tts_provider }}
+        </p>
+      </div>
+      <button
+        id="lockBtn"
+        type="button"
+        class="hidden text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
+      >
+        Bloquear
+      </button>
+    </div>
+  </header>
+
+  <!-- Toast -->
+  <div
+    id="toast"
+    class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-2.5 rounded-full bg-emerald-500 text-slate-950 text-sm font-semibold shadow-lg"
+  ></div>
+
+  <!-- PIN Screen -->
+  <main id="pinGate" class="hidden max-w-md mx-auto px-4 pt-12">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+      <h2 class="text-lg font-bold text-white mb-1">Acceso al Studio</h2>
+      <p class="text-sm text-slate-400 mb-4">
+        Ingresa el PIN configurado para subir videos y descargar resultados.
+      </p>
+      <form id="pinForm" class="space-y-3">
+        <input
+          id="pinInput"
+          type="password"
+          inputmode="numeric"
+          autocomplete="current-password"
+          placeholder="PIN de acceso"
+          class="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-center text-lg tracking-widest focus:outline-none focus:border-brand-400"
+          required
+        />
+        <p id="pinError" class="hidden text-xs text-rose-400 text-center"></p>
+        <button
+          type="submit"
+          class="w-full py-3 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold text-sm transition"
+        >
+          Entrar
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <!-- App Content -->
+  <main id="studioApp" class="hidden max-w-2xl mx-auto px-4 pt-5 space-y-6">
+
+    <!-- Upload Form Card -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-lg">
+      <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300 mb-3">
+        1. Subir videos crudos (máx. 3)
+      </h2>
+
+      <form id="uploadForm" class="space-y-4">
+        <label
+          for="videoFiles"
+          class="block border-2 border-dashed border-slate-700 hover:border-brand-400 rounded-xl p-5 text-center cursor-pointer transition bg-slate-950/60"
+        >
+          <input
+            id="videoFiles"
+            type="file"
+            accept="video/mp4,video/quicktime,video/x-matroska,.mp4,.mov,.mkv"
+            multiple
+            class="hidden"
+          />
+          <div class="text-sm font-semibold text-white">
+            Toca aquí para elegir videos (.mp4 / .mov)
+          </div>
+          <div class="text-xs text-slate-400 mt-1">
+            Hasta 3 videos por lote desde tu galería
+          </div>
+        </label>
+
+        <ul id="selectedFilesList" class="hidden space-y-1.5 text-xs"></ul>
+
+        <div>
+          <label for="extraContext" class="block text-xs font-medium text-slate-300 mb-1">
+            Contexto adicional opcional (precio, garantía, promo)
+          </label>
+          <textarea
+            id="extraContext"
+            rows="2"
+            placeholder="Ej: Precio 4500 Bs, batería 60V 20Ah, envío gratis en Cochabamba"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-400"
+          ></textarea>
+        </div>
+
+        <label class="flex items-center justify-between gap-3 bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 cursor-pointer">
+          <div>
+            <span class="block text-sm font-medium text-slate-200">Audio original de fondo</span>
+            <span class="block text-xs text-slate-400">Mezclar música del video al 18% bajo la voz</span>
+          </div>
+          <input
+            id="keepAudio"
+            type="checkbox"
+            checked
+            class="w-5 h-5 accent-amber-400 rounded"
+          />
+        </label>
+
+        <button
+          id="submitBtn"
+          type="submit"
+          class="w-full py-3.5 rounded-xl bg-brand-500 hover:bg-brand-400 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold text-sm transition"
+        >
+          Procesar videos con IA
+        </button>
+      </form>
+    </section>
+
+    <!-- Active Job Progress -->
+    <section id="jobSection" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-brand-400">
+          Procesamiento en curso
+        </h2>
+        <span id="jobOverallBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300"></span>
+      </div>
+      <div id="jobFilesContainer" class="space-y-2.5"></div>
+    </section>
+
+    <!-- History & Results -->
+    <section class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-300">
+          Videos procesados
+        </h2>
+        <div class="flex items-center gap-2">
+          <button
+            id="refreshBtn"
+            type="button"
+            class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200"
+          >
+            Actualizar
+          </button>
+          <button
+            id="cleanupAllBtn"
+            type="button"
+            class="text-xs px-3 py-1.5 rounded-lg bg-rose-950/70 hover:bg-rose-900 text-rose-300 border border-rose-800/60"
+          >
+            Limpiar todo
+          </button>
+        </div>
+      </div>
+
+      <div id="historyEmpty" class="hidden text-center py-8 bg-slate-900/50 border border-slate-800 rounded-2xl text-sm text-slate-400">
+        Aún no hay videos procesados. Sube uno arriba para empezar.
+      </div>
+
+      <div id="historyList" class="space-y-4"></div>
+    </section>
+  </main>
+
+  <script>
+    const PIN_REQUIRED = {{ 'true' if pin_required else 'false' }};
+    const STORAGE_KEY = 'rulo_studio_pin';
+
+    const pinGate = document.getElementById('pinGate');
+    const studioApp = document.getElementById('studioApp');
+    const lockBtn = document.getElementById('lockBtn');
+    const pinForm = document.getElementById('pinForm');
+    const pinInput = document.getElementById('pinInput');
+    const pinError = document.getElementById('pinError');
+
+    const uploadForm = document.getElementById('uploadForm');
+    const videoFilesInput = document.getElementById('videoFiles');
+    const selectedFilesList = document.getElementById('selectedFilesList');
+    const extraContextInput = document.getElementById('extraContext');
+    const keepAudioInput = document.getElementById('keepAudio');
+    const submitBtn = document.getElementById('submitBtn');
+
+    const jobSection = document.getElementById('jobSection');
+    const jobOverallBadge = document.getElementById('jobOverallBadge');
+    const jobFilesContainer = document.getElementById('jobFilesContainer');
+
+    const historyList = document.getElementById('historyList');
+    const historyEmpty = document.getElementById('historyEmpty');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const cleanupAllBtn = document.getElementById('cleanupAllBtn');
+    const toastEl = document.getElementById('toast');
+
+    let pollTimer = null;
+    let toastTimer = null;
+
+    function getPin() {
+      return localStorage.getItem(STORAGE_KEY) || '';
+    }
+
+    function authHeaders(extra = {}) {
+      const headers = { ...extra };
+      const pin = getPin();
+      if (pin) headers['X-Studio-Pin'] = pin;
+      return headers;
+    }
+
+    function mediaUrl(slug, filename, download = false) {
+      const params = new URLSearchParams();
+      if (download) params.set('download', 'true');
+      const pin = getPin();
+      if (pin) params.set('pin', pin);
+      const qs = params.toString();
+      return `/api/media/${encodeURIComponent(slug)}/${encodeURIComponent(filename)}${qs ? '?' + qs : ''}`;
+    }
+
+    function showToast(msg, isError = false) {
+      toastEl.textContent = msg;
+      toastEl.className = `fixed bottom-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full text-sm font-semibold shadow-lg ${
+        isError ? 'bg-rose-500 text-white' : 'bg-emerald-400 text-slate-950'
+      }`;
+      toastEl.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.add('hidden'), 2600);
+    }
+
+    async function copyText(text, label) {
+      if (!text) {
+        showToast(`No hay texto de ${label} disponible`, true);
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(`${label} copiado`);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast(`${label} copiado`);
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function openStudio() {
+      pinGate.classList.add('hidden');
+      studioApp.classList.remove('hidden');
+      if (PIN_REQUIRED) lockBtn.classList.remove('hidden');
+      loadHistory();
+    }
+
+    function openPinGate(message = '') {
+      studioApp.classList.add('hidden');
+      lockBtn.classList.add('hidden');
+      pinGate.classList.remove('hidden');
+      if (message) {
+        pinError.textContent = message;
+        pinError.classList.remove('hidden');
+      } else {
+        pinError.classList.add('hidden');
+      }
+    }
+
+    async function verifyAndInit() {
+      if (!PIN_REQUIRED) {
+        openStudio();
+        return;
+      }
+      const saved = getPin();
+      if (!saved) {
+        openPinGate();
+        return;
+      }
+      try {
+        const res = await fetch('/api/auth', { method: 'POST', headers: authHeaders() });
+        if (res.ok) {
+          openStudio();
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
+          openPinGate('PIN expirado o inválido.');
+        }
+      } catch {
+        openPinGate('No se pudo conectar con el servidor.');
+      }
+    }
+
+    pinForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const candidate = pinInput.value.trim();
+      if (!candidate) return;
+      localStorage.setItem(STORAGE_KEY, candidate);
+      const res = await fetch('/api/auth', { method: 'POST', headers: authHeaders() });
+      if (res.ok) {
+        pinInput.value = '';
+        openStudio();
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+        openPinGate('PIN incorrecto.');
+      }
+    });
+
+    lockBtn.addEventListener('click', () => {
+      localStorage.removeItem(STORAGE_KEY);
+      clearInterval(pollTimer);
+      openPinGate();
+    });
+
+    videoFilesInput.addEventListener('change', () => {
+      const files = Array.from(videoFilesInput.files || []);
+      if (files.length > 3) {
+        showToast('Máximo 3 videos por lote', true);
+        videoFilesInput.value = '';
+        selectedFilesList.classList.add('hidden');
+        return;
+      }
+      if (!files.length) {
+        selectedFilesList.classList.add('hidden');
+        return;
+      }
+      selectedFilesList.innerHTML = files.map((f) => {
+        const mb = (f.size / (1024 * 1024)).toFixed(1);
+        return `<li class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-lg px-3 py-2">
+          <span class="truncate text-slate-200 font-medium">${escapeHtml(f.name)}</span>
+          <span class="text-slate-400 shrink-0 ml-2">${mb} MB</span>
+        </li>`;
+      }).join('');
+      selectedFilesList.classList.remove('hidden');
+    });
+
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const files = Array.from(videoFilesInput.files || []);
+      if (!files.length) {
+        showToast('Selecciona al menos 1 video', true);
+        return;
+      }
+      if (files.length > 3) {
+        showToast('Máximo 3 videos por lote', true);
+        return;
+      }
+
+      const formData = new FormData();
+      files.forEach((f) => formData.append('files', f));
+      formData.append('extra_context', extraContextInput.value.trim());
+      formData.append('keep_original_audio', keepAudioInput.checked ? 'true' : 'false');
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Subiendo videos...';
+
+      try {
+        const res = await fetch('/api/process', {
+          method: 'POST',
+          headers: authHeaders(),
+          body: formData,
+        });
+        if (res.status === 401) {
+          openPinGate('PIN requerido.');
+          return;
+        }
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.detail || 'Error al subir videos', true);
+          return;
+        }
+
+        videoFilesInput.value = '';
+        selectedFilesList.classList.add('hidden');
+        renderJob(data);
+        startPolling(data.job_id);
+        showToast('Lote enviado a procesamiento');
+      } catch {
+        showToast('Error de red al subir videos', true);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Procesar videos con IA';
+      }
+    });
+
+    function statusBadgeClass(status) {
+      switch (status) {
+        case 'completed': return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+        case 'completed_with_errors': return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+        case 'failed': return 'bg-rose-500/20 text-rose-300 border-rose-500/30';
+        case 'processing': return 'bg-sky-500/20 text-sky-300 border-sky-500/30';
+        default: return 'bg-slate-800 text-slate-300 border-slate-700';
+      }
+    }
+
+    function renderJob(job) {
+      jobSection.classList.remove('hidden');
+      jobOverallBadge.textContent = job.status;
+      jobOverallBadge.className = `text-xs px-2.5 py-0.5 rounded-full border ${statusBadgeClass(job.status)}`;
+
+      jobFilesContainer.innerHTML = job.files.map((f) => `
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-medium text-white truncate">${escapeHtml(f.filename)}</span>
+            <span class="text-xs px-2 py-0.5 rounded-full border shrink-0 ${statusBadgeClass(f.status)}">
+              ${escapeHtml(f.status)}
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">${escapeHtml(f.detail || '')}</p>
+        </div>
+      `).join('');
+    }
+
+    function startPolling(jobId) {
+      clearInterval(pollTimer);
+      pollTimer = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`, {
+            headers: authHeaders(),
+          });
+          if (!res.ok) return;
+          const job = await res.json();
+          renderJob(job);
+          if (['completed', 'completed_with_errors', 'failed'].includes(job.status)) {
+            clearInterval(pollTimer);
+            loadHistory();
+            showToast(
+              job.status === 'failed'
+                ? 'El procesamiento falló'
+                : '¡Videos listos para publicar!',
+              job.status === 'failed'
+            );
+          }
+        } catch {
+          // reintento en el siguiente tick
+        }
+      }, 2500);
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch('/api/history', { headers: authHeaders() });
+        if (res.status === 401) {
+          openPinGate('PIN requerido.');
+          return;
+        }
+        const data = await res.json();
+        const items = data.items || [];
+
+        if (!items.length) {
+          historyList.innerHTML = '';
+          historyEmpty.classList.remove('hidden');
+          return;
+        }
+
+        historyEmpty.classList.add('hidden');
+        historyList.innerHTML = items.map((item) => {
+          const videoSrc = mediaUrl(item.slug, item.video_file || 'video_final.mp4');
+          const downloadHref = mediaUrl(item.slug, item.video_file || 'video_final.mp4', true);
+          const metaParts = [];
+          if (item.video_duration) metaParts.push(`Video ${item.video_duration}s`);
+          if (item.audio_duration) metaParts.push(`Voz ${item.audio_duration}s`);
+          if (item.elapsed_seconds) metaParts.push(`Render ${item.elapsed_seconds}s`);
+
+          return `
+            <article class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg" data-slug="${escapeHtml(item.slug)}">
+              <div class="p-4 border-b border-slate-800 flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <h3 class="text-sm font-bold text-white truncate">${escapeHtml(item.source_filename || item.slug)}</h3>
+                  <p class="text-xs text-slate-400 mt-0.5">${escapeHtml(metaParts.join(' · ') || item.slug)}</p>
+                </div>
+                <button
+                  type="button"
+                  data-delete-slug="${escapeHtml(item.slug)}"
+                  class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-rose-900/70 text-slate-300 hover:text-rose-200 shrink-0"
+                >
+                  Eliminar
+                </button>
+              </div>
+
+              ${item.has_video ? `
+                <div class="bg-black">
+                  <video
+                    controls
+                    playsinline
+                    preload="metadata"
+                    class="w-full max-h-96 mx-auto"
+                    src="${escapeHtml(videoSrc)}"
+                  ></video>
+                </div>
+              ` : ''}
+
+              <div class="p-4 space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <a
+                    href="${escapeHtml(downloadHref)}"
+                    download
+                    class="text-center py-2.5 px-3 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-bold text-xs transition"
+                  >
+                    Descargar MP4
+                  </a>
+                  <button
+                    type="button"
+                    data-copy="tiktok"
+                    class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition"
+                  >
+                    Copiar TikTok
+                  </button>
+                  <button
+                    type="button"
+                    data-copy="reels"
+                    class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition"
+                  >
+                    Copiar Reels (Meta)
+                  </button>
+                </div>
+
+                <details class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs space-y-2">
+                  <summary class="cursor-pointer font-semibold text-slate-300 select-none">
+                    Ver textos y guion de audio
+                  </summary>
+                  <div class="pt-2 space-y-3 text-slate-300">
+                    <div>
+                      <div class="font-bold text-brand-400 mb-1">TikTok</div>
+                      <p class="whitespace-pre-wrap leading-relaxed">${escapeHtml(item.descripcion_tiktok || '')}</p>
+                    </div>
+                    <div>
+                      <div class="font-bold text-brand-400 mb-1">Meta Business Suite (Reels)</div>
+                      <p class="whitespace-pre-wrap leading-relaxed">${escapeHtml(item.descripcion_reels || '')}</p>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="font-bold text-brand-400">Guion de Audio</span>
+                        <button
+                          type="button"
+                          data-copy="guion"
+                          class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200"
+                        >
+                          Copiar guion
+                        </button>
+                      </div>
+                      <p class="whitespace-pre-wrap leading-relaxed text-slate-400">${escapeHtml(item.guion_audio || '')}</p>
+                    </div>
+                  </div>
+                </details>
+              </div>
+            </article>
+          `;
+        }).join('');
+
+        // Wire up per-card copy & delete buttons safely without inline JS escaping issues
+        const bySlug = new Map(items.map((i) => [i.slug, i]));
+        historyList.querySelectorAll('article[data-slug]').forEach((card) => {
+          const slug = card.getAttribute('data-slug');
+          const item = bySlug.get(slug);
+          if (!item) return;
+
+          card.querySelector('[data-copy="tiktok"]')?.addEventListener('click', () => {
+            copyText(item.descripcion_tiktok, 'Copy TikTok');
+          });
+          card.querySelector('[data-copy="reels"]')?.addEventListener('click', () => {
+            copyText(item.descripcion_reels, 'Copy Reels');
+          });
+          card.querySelector('[data-copy="guion"]')?.addEventListener('click', () => {
+            copyText(item.guion_audio, 'Guion de audio');
+          });
+          card.querySelector('[data-delete-slug]')?.addEventListener('click', async () => {
+            if (!confirm(`¿Eliminar '${item.source_filename || slug}'?`)) return;
+            const delRes = await fetch(`/api/cleanup?slug=${encodeURIComponent(slug)}`, {
+              method: 'DELETE',
+              headers: authHeaders(),
+            });
+            if (delRes.ok) {
+              showToast('Video eliminado');
+              loadHistory();
+            } else {
+              showToast('No se pudo eliminar', true);
+            }
+          });
+        });
+      } catch {
+        showToast('Error al cargar historial', true);
+      }
+    }
+
+    refreshBtn.addEventListener('click', loadHistory);
+
+    cleanupAllBtn.addEventListener('click', async () => {
+      if (!confirm('¿Eliminar todos los videos procesados del historial?')) return;
+      const res = await fetch('/api/cleanup', {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showToast(`Limpieza lista (${data.count} eliminados)`);
+        loadHistory();
+      } else {
+        showToast('Error al limpiar historial', true);
+      }
+    });
+
+    verifyAndInit();
+  </script>
+</body>
+</html>

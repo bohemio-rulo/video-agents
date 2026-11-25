@@ -2,6 +2,7 @@ services:
   rulo-video-studio:
     build: .
     container_name: rulo-video-studio
+    restart: unless-stopped
     ports:
       - "8085:8085"
     env_file:
@@ -10,4 +11,10 @@ services:
       - USE_LOCAL_OLLAMA=false
     volumes:
       - ./media:/app/media
-    restart: unless-stopped
+    networks:
+      - default
+      - proxy-network
+
+networks:
+  proxy-network:
+    external: true

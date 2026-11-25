@@ -67,10 +67,12 @@ def verify_studio_pin(
 def _parse_legacy_copys(copys_path: Path) -> dict[str, str]:
     text = copys_path.read_text(encoding="utf-8")
 
+    sep = r"={10,}"
+
     def _extract(section_prefix: str) -> str:
         pattern = (
-            rf"={10,}\n{re.escape(section_prefix)}[^\n]*\n={10,}\n"
-            r"(.*?)(?=\n={10,}\n|\Z)"
+            sep + r"\n" + re.escape(section_prefix) + r"[^\n]*\n" + sep + r"\n"
+            r"(.*?)(?=\n" + sep + r"\n|\Z)"
         )
         match = re.search(pattern, text, flags=re.DOTALL)
         return match.group(1).strip() if match else ""

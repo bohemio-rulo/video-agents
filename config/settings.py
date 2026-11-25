@@ -24,11 +24,23 @@ WHATSAPP_SPOKEN = "72 20 68 08"    # Para locución en pares (TTS)
 CITY_BASE = "Cochabamba"
 COUNTRY = "Bolivia"
 
+# Seguridad de interfaz web móvil
+STUDIO_PIN = os.getenv("STUDIO_PIN", "2026")
+
 # Configuración de voz (TTS) estilo comercial / Lively DJ
-TTS_VOICE = "es-US-AlonsoNeural"   # Cambia aquí por la voz que elegiste de la lista
-TTS_RATE = "+15%"                  # Ritmo ágil y dinámico
-TTS_PITCH = "+6Hz"                 # Tono más brillante y entusiasta
+TTS_PROVIDER = os.getenv("TTS_PROVIDER", "edge").strip().lower()
+TTS_VOICE = os.getenv("TTS_VOICE", "es-US-AlonsoNeural")
+TTS_RATE = os.getenv("TTS_RATE", "+15%")
+TTS_PITCH = os.getenv("TTS_PITCH", "+6Hz")
 WORDS_PER_SECOND = 2.7             # Palabras por segundo calibradas a +15%
+
+# Credenciales opcionales para clonación de voz (ElevenLabs / Fish Audio)
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
+ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "")
+ELEVENLABS_MODEL_ID = os.getenv("ELEVENLABS_MODEL_ID", "eleven_multilingual_v2")
+
+FISH_API_KEY = os.getenv("FISH_API_KEY", "")
+FISH_VOICE_ID = os.getenv("FISH_VOICE_ID", "")
 
 # Mezcla de audio original de fondo
 KEEP_ORIGINAL_AUDIO = True         # Mantiene la música/sonido original del video

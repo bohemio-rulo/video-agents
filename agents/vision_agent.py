@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 from google.genai.errors import APIError
 
-from config.settings import GEMINI_API_KEY, STORE_NAME
+from config.settings import GEMINI_API_KEY
 
 EXCLUDED_KEYWORDS = ("embedding", "imagen", "veo", "tts", "lyria", "aqa", "robotics")
 
@@ -64,7 +64,7 @@ def _create_lightweight_proxy(source_path: Path) -> Path:
     return proxy_path
 
 
-def analyze_video_content(video_path: Path) -> str:
+def analyze_video_content(video_path: Path, store_name: str = "") -> str:
     """
     Comprime un proxy ligero del .mp4, lo sube a Gemini File API con reintentos
     y descubrimiento automático de modelos disponibles, extrae el reporte visual
@@ -82,9 +82,10 @@ def analyze_video_content(video_path: Path) -> str:
     proxy_path = None
     t_start = time.perf_counter()
 
+    store_label = f"la tienda '{store_name}'" if store_name.strip() else "una tienda de ecommerce"
     analysis_prompt = (
-        f"Eres un analista de producto audiovisual para la tienda '{STORE_NAME}' en Bolivia "
-        "(especializada en vehículos eléctricos como trimotos/bicicletas/scooters, "
+        f"Eres un analista de producto audiovisual para {store_label} "
+        "(productos como vehículos eléctricos tipo trimotos/bicicletas/scooters, "
         "cerraduras inteligentes, herramientas eléctricas y gadgets tecnológicos).\n\n"
         "Observa este video promocional de principio a fin y entrega un reporte factual "
         "y detallado con estas 4 secciones exactas:\n"

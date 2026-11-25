@@ -8,9 +8,10 @@ El sistema debe ejecutarse como un **microservicio web móvil (FastAPI + Docker)
 ---
 
 ## 2. Reglas de Negocio Inmutables (Rulo Ecommerce)
-1. **Contacto oficial:** WhatsApp `72206808`.
+0. **Marca y contacto parametrizables (genérico):** `STORE_NAME`, `WHATSAPP_NUMBER` (y su forma hablada `WHATSAPP_SPOKEN`), `STORE_URL`, `CITY_BASE` y `COUNTRY` son **parámetros opcionales por video** (vía formulario web o flags CLI `--store-name` / `--whatsapp`). Los valores de Rulo son solo los **defaults** en `config/settings.py`. Si un dato llega vacío, **no se menciona** en el audio ni en las descripciones (lógica en `services/branding.py` y prompts condicionales en `agents/copy_agent.py`). Esto permite reutilizar el estudio para cualquier empresa.
+1. **Contacto oficial (default Rulo):** WhatsApp `72206808`.
    - En **descripciones escritas** (TikTok / Reels): escribir junto `72206808`.
-   - En **guion de audio (`guion_audio`)**: escribir separado en pares `72 20 68 08` para que el motor TTS lo pronuncie con claridad (validado por regex en `schemas/content_schema.py`).
+   - En **guion de audio (`guion_audio`)**: escribir separado en pares `72 20 68 08` para que el motor TTS lo pronuncie con claridad. La forma hablada se deriva automáticamente del número provisto y se refuerza en `services/branding.py` (`enforce_spoken_whatsapp`).
 2. **Guion de audio (`guion_audio`):**
    - **CERO emojis**, **CERO hashtags** y **CERO acotaciones** entre corchetes o paréntesis.
    - Escribir números como dígitos sin comas (ej. `1000`, `2000`) y designar potencia eléctrica siempre como `Watts`.
@@ -30,6 +31,7 @@ El sistema debe ejecutarse como un **microservicio web móvil (FastAPI + Docker)
 - `schemas/content_schema.py`: Esquema Pydantic `VideoMarketingContent` con sanitización de emojis/hashtags en `guion_audio`, formateo `72 20 68 08`, recorte a 5 hashtags en `descripcion_tiktok` y a máximo 8 hashtags en `descripcion_reels`.
 - `agents/vision_agent.py`: Comprime un proxy ligero con FFmpeg (`480p`, `4 fps`, sin audio) para acelerar subida, lo sube a Gemini File API (`google-genai`), descubre dinámicamente modelos activos priorizando `gemini-3.8-flash` con reintentos/backoff ante errores `503` y limpia archivos temporales.
 - `agents/copy_agent.py`: Agente CrewAI que usa Ollama (`ollama/llama3.1:8b`) en desarrollo local (`USE_LOCAL_OLLAMA=true`) o `gemini/gemini-3.8-flash` en servidor (`USE_LOCAL_OLLAMA=false`).
+- `services/branding.py`: `BrandContext` + utilidades de marca por video (derivación del WhatsApp hablado en pares con `format_whatsapp_spoken`, normalización `enforce_spoken_whatsapp` y `build_brand_context` que respeta `None`=default y `""`=omitir).
 - `services/tts_service.py`: Síntesis de voz con `edge-tts` y cálculo de duración con `ffprobe`.
 - `services/video_service.py`: Ensamblado con FFmpeg; usa `tpad=stop_mode=clone` si la voz supera la duración del video y `amix=...:normalize=0` para mezclar el audio original al 18% sin atenuar la voz en off.
 - `main.py`: Script CLI funcional para procesar videos en `media/input/`.

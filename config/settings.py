@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -16,13 +17,21 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "ollama/llama3.1:8b")
 USE_LOCAL_OLLAMA = os.getenv("USE_LOCAL_OLLAMA", "true").lower() == "true"
 
-# Reglas de negocio - Rulo Ecommerce
-STORE_NAME = "Rulo Ecommerce"
-STORE_URL = "rulo-ecommerce.com"
-WHATSAPP_NUMBER = "72206808"       # Para descripciones escritas (TikTok / Reels)
-WHATSAPP_SPOKEN = "72 20 68 08"    # Para locución en pares (TTS)
-CITY_BASE = "Cochabamba"
-COUNTRY = "Bolivia"
+# Datos de marca por DEFECTO (configurables por env y sobrescribibles por video).
+# Si se dejan vacíos (o el formulario web los envía vacíos) NO se mencionan en el
+# audio ni en las descripciones: el estudio queda genérico para cualquier empresa.
+STORE_NAME = os.getenv("STORE_NAME", "Rulo Ecommerce")
+STORE_URL = os.getenv("STORE_URL", "rulo-ecommerce.com")
+WHATSAPP_NUMBER = os.getenv("WHATSAPP_NUMBER", "72206808")   # Para descripciones escritas
+CITY_BASE = os.getenv("CITY_BASE", "Cochabamba")
+COUNTRY = os.getenv("COUNTRY", "Bolivia")
+
+# WHATSAPP_SPOKEN: número separado en pares para locución clara (TTS).
+# Se deriva automáticamente del número si no se define explícitamente en .env.
+_wa_digits = re.sub(r"\D", "", WHATSAPP_NUMBER)
+WHATSAPP_SPOKEN = os.getenv("WHATSAPP_SPOKEN", "").strip() or " ".join(
+    _wa_digits[i : i + 2] for i in range(0, len(_wa_digits), 2)
+)
 
 # Seguridad de interfaz web móvil
 STUDIO_PIN = os.getenv("STUDIO_PIN", "2026")

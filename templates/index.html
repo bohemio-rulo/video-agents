@@ -114,6 +114,35 @@
 
         <ul id="selectedFilesList" class="hidden space-y-1.5 text-xs"></ul>
 
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="storeName" class="block text-xs font-medium text-slate-300 mb-1">
+              Nombre de la empresa / tienda (opcional)
+            </label>
+            <input
+              id="storeName"
+              type="text"
+              placeholder="Ej: Rulo Ecommerce"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-400"
+            />
+          </div>
+          <div>
+            <label for="whatsappNumber" class="block text-xs font-medium text-slate-300 mb-1">
+              WhatsApp de contacto (opcional)
+            </label>
+            <input
+              id="whatsappNumber"
+              type="tel"
+              inputmode="numeric"
+              placeholder="Ej: 72206808"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-400"
+            />
+          </div>
+        </div>
+        <p class="text-xs text-slate-500 -mt-2">
+          Si dejas estos campos vacíos, el audio y las descripciones no mencionarán marca ni número.
+        </p>
+
         <div>
           <label for="extraContext" class="block text-xs font-medium text-slate-300 mb-1">
             Contexto adicional opcional (precio, garantía, promo)
@@ -206,9 +235,14 @@
     const uploadForm = document.getElementById('uploadForm');
     const videoFilesInput = document.getElementById('videoFiles');
     const selectedFilesList = document.getElementById('selectedFilesList');
+    const storeNameInput = document.getElementById('storeName');
+    const whatsappNumberInput = document.getElementById('whatsappNumber');
     const extraContextInput = document.getElementById('extraContext');
     const keepAudioInput = document.getElementById('keepAudio');
     const submitBtn = document.getElementById('submitBtn');
+
+    const BRAND_NAME_KEY = 'rulo_studio_store_name';
+    const BRAND_WA_KEY = 'rulo_studio_whatsapp';
 
     const jobSection = document.getElementById('jobSection');
     const jobOverallBadge = document.getElementById('jobOverallBadge');
@@ -287,6 +321,9 @@
       pinGate.classList.add('hidden');
       studioApp.classList.remove('hidden');
       if (PIN_REQUIRED) lockBtn.classList.remove('hidden');
+      // Rellena los datos de marca guardados para no re-escribirlos cada vez
+      storeNameInput.value = localStorage.getItem(BRAND_NAME_KEY) || '';
+      whatsappNumberInput.value = localStorage.getItem(BRAND_WA_KEY) || '';
       loadHistory();
     }
 
@@ -380,8 +417,16 @@
         return;
       }
 
+      const storeName = storeNameInput.value.trim();
+      const whatsappNumber = whatsappNumberInput.value.trim();
+      // Recuerda los datos de la empresa para los próximos videos
+      localStorage.setItem(BRAND_NAME_KEY, storeName);
+      localStorage.setItem(BRAND_WA_KEY, whatsappNumber);
+
       const formData = new FormData();
       files.forEach((f) => formData.append('files', f));
+      formData.append('store_name', storeName);
+      formData.append('whatsapp_number', whatsappNumber);
       formData.append('extra_context', extraContextInput.value.trim());
       formData.append('keep_original_audio', keepAudioInput.checked ? 'true' : 'false');
 
@@ -496,12 +541,17 @@
           if (item.audio_duration) metaParts.push(`Voz ${item.audio_duration}s`);
           if (item.elapsed_seconds) metaParts.push(`Render ${item.elapsed_seconds}s`);
 
+          const brandParts = [];
+          if (item.store_name) brandParts.push(item.store_name);
+          if (item.whatsapp_number) brandParts.push(`WhatsApp ${item.whatsapp_number}`);
+
           return `
             <article class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg" data-slug="${escapeHtml(item.slug)}">
               <div class="p-4 border-b border-slate-800 flex items-start justify-between gap-2">
                 <div class="min-w-0">
                   <h3 class="text-sm font-bold text-white truncate">${escapeHtml(item.source_filename || item.slug)}</h3>
                   <p class="text-xs text-slate-400 mt-0.5">${escapeHtml(metaParts.join(' · ') || item.slug)}</p>
+                  ${brandParts.length ? `<p class="text-xs text-brand-400 mt-0.5 truncate">${escapeHtml(brandParts.join(' · '))}</p>` : ''}
                 </div>
                 <button
                   type="button"

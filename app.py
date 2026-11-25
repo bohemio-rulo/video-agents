@@ -103,6 +103,8 @@ def _run_job(
     extra_context: str,
     keep_original_audio: bool,
     upload_dir: Path,
+    store_name: str,
+    whatsapp_number: str,
 ) -> None:
     with _JOBS_LOCK:
         if job_id in _JOBS:
@@ -132,6 +134,8 @@ def _run_job(
                     archive_input=False,
                     ensure_unique_slug=True,
                     progress_cb=on_progress,
+                    store_name=store_name,
+                    whatsapp_number=whatsapp_number,
                 )
                 _update_job_file(
                     job_id,
@@ -197,6 +201,8 @@ async def process_videos(
     files: list[UploadFile] = File(...),
     extra_context: str = Form(default=""),
     keep_original_audio: bool = Form(default=KEEP_ORIGINAL_AUDIO),
+    store_name: str = Form(default=""),
+    whatsapp_number: str = Form(default=""),
 ) -> dict[str, Any]:
     if not files:
         raise HTTPException(status_code=400, detail="Debes subir al menos 1 video.")
@@ -254,6 +260,8 @@ async def process_videos(
         "finished_at": None,
         "extra_context": extra_context.strip(),
         "keep_original_audio": keep_original_audio,
+        "store_name": store_name.strip(),
+        "whatsapp_number": whatsapp_number.strip(),
         "files": [
             {k: v for k, v in entry.items() if k != "temp_path"}
             for entry in file_entries
@@ -270,6 +278,8 @@ async def process_videos(
         extra_context,
         keep_original_audio,
         upload_dir,
+        store_name.strip(),
+        whatsapp_number.strip(),
     )
 
     return job_record

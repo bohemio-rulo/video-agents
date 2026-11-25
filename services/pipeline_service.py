@@ -14,6 +14,7 @@ from config.settings import (
     OUTPUT_DIR,
     TTS_PROVIDER,
 )
+from services.branding import build_brand_context
 from services.tts_service import generate_voiceover
 from services.video_service import get_media_duration, merge_video_with_voiceover
 
@@ -49,14 +50,31 @@ def process_single_video(
     archive_input: bool = False,
     ensure_unique_slug: bool = False,
     progress_cb: ProgressCallback | None = None,
+    store_name: str | None = None,
+    whatsapp_number: str | None = None,
+    store_url: str | None = None,
+    city_base: str | None = None,
+    country: str | None = None,
 ) -> dict[str, Any]:
     """
     Orquesta el flujo completo para un video:
     duración -> visión Gemini -> copywriting CrewAI -> voz TTS -> ensamblado FFmpeg -> archivos de salida.
+
+    Los datos de marca (`store_name`, `whatsapp_number`, etc.) son opcionales por video:
+    - `None` => usa los valores por defecto de settings (modo CLI de Rulo).
+    - `""`   => se omiten en el audio y en las descripciones (modo genérico).
     """
     def notify(stage: str, detail: str) -> None:
         if progress_cb is not None:
             progress_cb(stage, detail)
+
+    brand = build_brand_context(
+        store_name=store_name,
+        whatsapp_number=whatsapp_number,
+        store_url=store_url,
+        city_base=city_base,
+        country=country,
+    )
 
     t0 = time.perf_counter()
     path = Path(video_path)
@@ -77,14 +95,14 @@ def process_single_video(
 
     # 2. Agente de Visión (Gemini File API con proxy 480p)
     notify("vision", "Analizando video con Gemini Vision...")
-    visual_report = analyze_video_content(path)
+    visual_report = analyze_video_content(path, store_name=brand.store_name)
     if extra_context.strip():
         visual_report += f"\n\n5. DATOS ADICIONALES DE TIENDA:\n{extra_context.strip()}"
 
     # 3. Agente Copywriter (CrewAI + validación Pydantic)
     notify("copy", "Redactando guion y copys para TikTok / Reels...")
     print("-> Redactando guion de audio y copys para TikTok / Reels...")
-    marketing = generate_marketing_copy(visual_report, video_duration)
+    marketing = generate_marketing_copy(visual_report, video_duration, brand=brand)
 
     # 4. Síntesis de voz (TTS Provider configurado)
     notify("tts", f"Generando voz en off ({TTS_PROVIDER})...")
@@ -135,6 +153,9 @@ def process_single_video(
         "extra_context": extra_context.strip(),
         "keep_original_audio": keep_original_audio,
         "tts_provider": TTS_PROVIDER,
+        "store_name": brand.store_name,
+        "store_url": brand.store_url,
+        "whatsapp_number": brand.whatsapp_number,
         "guion_audio": marketing.guion_audio,
         "descripcion_tiktok": marketing.descripcion_tiktok,
         "descripcion_reels": marketing.descripcion_reels,

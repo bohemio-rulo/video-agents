@@ -1,6 +1,5 @@
 import re
 from pydantic import BaseModel, Field, field_validator
-from config.settings import WHATSAPP_SPOKEN
 
 TIKTOK_MAX_HASHTAGS = 5
 REELS_MAX_HASHTAGS = 8
@@ -51,8 +50,8 @@ class VideoMarketingContent(BaseModel):
         cleaned = re.sub(r"#\S+", "", cleaned)
         cleaned = re.sub(r"\[.*?\]|\(.*?\)", "", cleaned)
 
-        # Garantiza que el número siempre quede separado en pares para el TTS
-        cleaned = re.sub(r"722[\s\-]?06[\s\-]?80[\s\-]?8", WHATSAPP_SPOKEN, cleaned)
+        # La normalización del WhatsApp a pares se aplica en services/branding.py
+        # (enforce_spoken_whatsapp) usando el número provisto por video.
         return " ".join(cleaned.split()).strip()
 
     @field_validator("descripcion_tiktok")

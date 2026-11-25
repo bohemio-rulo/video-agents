@@ -15,6 +15,18 @@ def main() -> None:
         help="Dato extra opcional para los videos del lote (ej. 'Precio: 350 Bs, garantía 3 meses')",
     )
     parser.add_argument(
+        "--store-name",
+        type=str,
+        default=None,
+        help="Nombre de la empresa/tienda. Vacío ('') para no mencionarla en el copy.",
+    )
+    parser.add_argument(
+        "--whatsapp",
+        type=str,
+        default=None,
+        help="WhatsApp de contacto. Vacío ('') para no mencionarlo en audio ni descripciones.",
+    )
+    parser.add_argument(
         "--mute-original",
         action="store_true",
         help="Silencia el audio original del video (útil si tiene locución en chino en vez de música)",
@@ -46,6 +58,8 @@ def main() -> None:
                 extra_context=args.context,
                 keep_original_audio=(not args.mute_original) and KEEP_ORIGINAL_AUDIO,
                 archive_input=args.archive,
+                store_name=args.store_name,
+                whatsapp_number=args.whatsapp,
             )
         except Exception as err:
             print(f"\n[ERROR] Falló el procesamiento de '{video.name}': {err}")

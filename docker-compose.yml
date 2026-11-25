@@ -1,0 +1,13 @@
+services:
+  rulo-video-studio:
+    build: .
+    container_name: rulo-video-studio
+    ports:
+      - "8085:8085"
+    env_file:
+      - .env
+    environment:
+      - USE_LOCAL_OLLAMA=false
+    volumes:
+      - ./media:/app/media
+    restart: unless-stopped
